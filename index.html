@@ -233,7 +233,7 @@
 
 <script>
     /* ==========================================
-     ✅ SCRIPT_URL 상수에 배포하여 얻은 새로운 URL을 교체하세요.
+     [필수 수정] SCRIPT_URL 상수에 배포하여 얻은 새로운 URL을 교체하세요.
      ========================================== */
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbySw5QmRaMxSUbrBKRyHzDlapyc8zkR-wjuURs9SvygalWU29IxEDvRmsSQ-OuI0TC3/exec"; 
     
@@ -241,22 +241,23 @@
     let currentUser = {}; // { nickname: "닉네임", major: "학과" }
     let fileData = { A: null, B: null }; // Base64 이미지 데이터를 저장
 
-    // 페이지 전환 함수
+    // 페이지 전환 함수 (수정 없음)
     function goToPage(pageId) {
         document.querySelectorAll('.page').forEach(page => {
-            page.style.display = 'none';
+            page.classList.remove('active');
+            page.style.display = 'none'; // display 속성도 명확히 제어
         });
-        document.getElementById(pageId).classList.add('active');
-        
+        const targetPage = document.getElementById(pageId);
+        if (targetPage) {
+            targetPage.classList.add('active');
+            targetPage.style.display = 'flex'; // 활성화된 페이지는 flex로 표시
+        }
+
         const backArrow = document.querySelector('.back-arrow');
         const titleElement = document.getElementById('page-title');
         const fabBtn = document.getElementById('fab-write');
-        const activePage = document.querySelector('.page.active');
-        
-        // 페이지 표시 로직
-        document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
-        document.getElementById(pageId).classList.add('active');
-        
+
+        // Nav, FAB 버튼 제어 로직 (이전 답변과 동일하게 유지)
         if (['page-1'].includes(pageId)) {
             backArrow.style.display = 'none';
             titleElement.style.display = 'none';
@@ -276,7 +277,7 @@
         }
     }
 
-    // 뒤로 가기 함수 (임시)
+    // 뒤로 가기 함수 (수정 없음)
     function goBack() {
         const activePage = document.querySelector('.page.active');
         if (!activePage) return;
@@ -290,10 +291,8 @@
         
         if (targetPage) goToPage(targetPage);
     }
-
-    /* ==========================================
-     ✅ Page 2. 사용자 등록 함수
-     ========================================== */
+    
+    // Page 2. 사용자 등록 함수 (Apps Script 통신 로직 추가)
     function submitUserInfo() {
         const nicknameInput = document.getElementById('input-nickname');
         const majorSelect = document.getElementById('input-major');
@@ -331,83 +330,101 @@
         })
         .catch(error => {
             console.error('Registration Error:', error);
-            alert("서버 통신 오류: 정보를 등록할 수 없습니다. Apps Script URL 및 권한을 확인해주세요. " + error.message);
+            alert("서버 통신 오류: 정보를 등록할 수 없습니다. Apps Script URL 및 권한을 확인해주세요.");
         });
     }
 
-    /* ==========================================
-     ✅ Page 8. 파일 처리 함수 (누락된 부분)
-     ========================================== */
+    // Page 5. 투표 게시물 페이지로 이동
+    function openVotePage(postId, title, imgA, imgB) {
+        // 이 부분은 서버에서 데이터를 받아와야 하지만, 현재는 더미 데이터로 대체
+        document.getElementById('vote-question').textContent = title;
+        document.getElementById('vote-img-a').src = imgA;
+        document.getElementById('vote-img-b').src = imgB;
+        // ... (필요한 다른 초기화 로직)
+        goToPage('page-6'); 
+    }
+    
+    // Page 8. 이미지 파일을 Base64로 읽는 함수 (수정 완료)
     function handleFile(event) {
         const input = event.target;
-        const option = input.dataset.option;
+        const option = input.dataset.option; // 'A' 또는 'B'
         const file = input.files[0];
         const btn = document.getElementById(`btnOption${option}`);
 
         if (!file) {
             fileData[option] = null;
+            // 미리보기/버튼 상태 초기화
             btn.style.backgroundImage = 'none';
             btn.classList.remove('has-image');
+            // placeholder가 다시 보이도록 처리
+            btn.querySelector('.option-placeholder').style.display = 'flex'; 
             checkShareButtonState();
             return;
         }
 
         const reader = new FileReader();
         reader.onload = (e) => {
-            // ⭐️ Base64 헤더를 제거하지 않고 전체 데이터를 저장합니다.
-            fileData[option] = e.target.result; 
+            fileData[option] = e.target.result; // Base64 데이터 저장
+            // 버튼 배경 이미지 설정 및 placeholder 숨기기
             btn.style.backgroundImage = `url('${e.target.result}')`;
+            btn.style.backgroundSize = 'cover';
+            btn.style.backgroundPosition = 'center';
             btn.classList.add('has-image');
+            btn.querySelector('.option-placeholder').style.display = 'none'; 
             checkShareButtonState();
         };
-        // ⭐️ Base64 데이터가 커도 안정적인 data URL로 읽습니다.
-        reader.readAsDataURL(file); 
+        reader.readAsDataURL(file);
     }
     
-    // 공유하기 버튼 활성화/비활성화 체크
+    // 공유하기 버튼 활성화/비활성화 체크 (수정 완료)
     function checkShareButtonState() {
-        const shareButton = document.getElementById('shareButton');
+        const shareButton = document.querySelector('#page-8 .share-button'); // ID를 명확히 지정
         if (fileData.A || fileData.B) {
             shareButton.classList.add('active');
-            shareButton.style.cursor = 'pointer';
+            shareButton.onclick = submitNewPost; // 활성화 시에만 함수 연결
         } else {
             shareButton.classList.remove('active');
-            shareButton.style.cursor = 'default';
+            shareButton.onclick = null; // 비활성화 시 함수 연결 해제
         }
     }
 
 
     /* ==========================================
-     ✅ Page 8. 게시물 등록 함수 (누락된 부분)
+     [핵심 수정] Page 8. 게시물 등록 함수 (ID 및 로직 수정)
      ========================================== */
     function submitNewPost() {
-        const textarea = document.getElementById('feedbackTextarea');
+        // [수정] 텍스트 영역 ID: 'feedbackTextarea'로 수정
+        const textarea = document.getElementById('feedbackTextarea'); 
         const text = textarea.value.trim();
-        const shareButton = document.getElementById('shareButton');
+        // [수정] 공유하기 버튼 요소 재지정
+        const shareButton = document.querySelector('#page-8 .share-button'); 
         
         if (!fileData.A && !fileData.B) {
             alert("A 시안 또는 B 시안 중 하나 이상의 이미지를 등록해주세요.");
             return;
         }
 
-        // 임시로 사용자 정보가 없으면 기본값 설정 (페이지 2를 거치지 않았을 경우 대비)
+        // 사용자 정보가 없으면 기본값 설정 (페이지 2를 거치지 않았을 경우 대비)
         if (!currentUser.nickname) {
              currentUser.nickname = '익명';
              currentUser.major = '미정';
         }
     
+        // 1. Apps Script에 보낼 데이터(Payload) 구성
         const payload = {
             action: 'submitPost', 
             nickname: currentUser.nickname,
             major: currentUser.major,
             text: text,
+            // ⭐️ Base64 데이터를 직접 보냅니다. Apps Script의 doPost 로직과 일치시킵니다.
             imgA: fileData.A, 
             imgB: fileData.B 
         };
-        
+    
         // 버튼 비활성화 (중복 클릭 방지)
-        shareButton.textContent = "공유 중...";
+        shareButton.textContent = "등록 중...";
         shareButton.classList.remove('active');
+        shareButton.onclick = null; 
     
         // 2. fetch를 사용하여 Google Apps Script URL로 POST 요청 전송
         fetch(SCRIPT_URL, {
@@ -416,12 +433,11 @@
             body: JSON.stringify(payload)
         })
         .then(response => {
-            // 서버 응답이 비정상이면 에러 발생
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             return response.json();
         })
         .then(data => {
-            // 4. 응답 처리 및 페이지 이동
+            // 3. 응답 처리 및 페이지 이동
             if (data.status === 'success') {
                 alert("게시물이 성공적으로 등록되었으며, 이미지가 Google Drive에 저장되었습니다!");
                 
@@ -430,12 +446,18 @@
                 textarea.value = '';
                 fileData.A = null;
                 fileData.B = null;
-                document.getElementById('btnOptionA').style.backgroundImage = 'none';
-                document.getElementById('btnOptionB').style.backgroundImage = 'none';
-                document.getElementById('btnOptionA').classList.remove('has-image');
-                document.getElementById('btnOptionB').classList.remove('has-image');
+                // [수정] 버튼 스타일 초기화
+                const btnA = document.getElementById('btnOptionA');
+                const btnB = document.getElementById('btnOptionB');
+                btnA.style.backgroundImage = 'none';
+                btnB.style.backgroundImage = 'none';
+                btnA.classList.remove('has-image');
+                btnB.classList.remove('has-image');
+                btnA.querySelector('.option-placeholder').style.display = 'flex';
+                btnB.querySelector('.option-placeholder').style.display = 'flex';
                 document.getElementById('uploadA').value = null; 
                 document.getElementById('uploadB').value = null; 
+                
             } else {
                 alert(`게시물 등록 중 오류 발생: ${data.message}`);
             }
@@ -447,21 +469,27 @@
         .finally(() => {
             // 버튼 상태 복구
             shareButton.textContent = "공유하기";
-            checkShareButtonState();
+            checkShareButtonState(); // 상태에 따라 다시 활성화
         });
     }
 
-    // 기타 더미 함수 (생략)
-    function openVotePage(postId, title, imgA, imgB) { /* ... */ goToPage('page-6'); }
+    // 더미 함수들 (수정 없음)
     function submitVote(selection) { /* ... */ goToPage('page-7'); }
-    function openCommentModal() { /* ... */ }
-    function closeCommentModal() { /* ... */ }
-    function submitComment() { /* ... */ }
+    function openCommentModal() { 
+        document.getElementById('comment-modal').style.display = 'block';
+    }
+    function closeCommentModal() { 
+        document.getElementById('comment-modal').style.display = 'none';
+    }
+    function submitComment() { 
+        alert("댓글이 등록되었습니다! (실제 서버에 전송되지는 않았습니다)");
+        closeCommentModal();
+    }
     function renderPostList() { /* ... */ }
     function toggleVote(postId, select) { /* ... */ }
 
 
-    // 이벤트 리스너 연결 (DOMContentLoaded 이후)
+    // 초기 실행 및 이벤트 리스너 연결 (수정 완료)
     document.addEventListener('DOMContentLoaded', () => {
         goToPage('page-1'); 
 
@@ -470,21 +498,21 @@
         const btnA = document.getElementById('btnOptionA');
         const btnB = document.getElementById('btnOptionB');
         
-        // ⭐️ 누락되었던 이벤트 리스너 연결
+        // ⭐️ input 파일 변경 감지 리스너
         uploadA.addEventListener('change', handleFile);
         uploadB.addEventListener('change', handleFile);
 
-        // ⭐️ 누락되었던 버튼 클릭 이벤트 리스너 연결
+        // ⭐️ 버튼 클릭 시 input을 대신 클릭하도록 연결 (커스텀 버튼 구현)
         btnA.addEventListener('click', (e) => {
              e.stopPropagation(); 
-             uploadA.click(); // input 클릭하여 파일 선택 창 열기
+             uploadA.click();
         });
         btnB.addEventListener('click', (e) => {
              e.stopPropagation(); 
-             uploadB.click(); // input 클릭하여 파일 선택 창 열기
+             uploadB.click();
         });
 
-        checkShareButtonState(); 
+        checkShareButtonState(); // 초기 버튼 상태 확인
     });
 </script>
 </body>
