@@ -560,7 +560,7 @@
         }
     }
 
-    // [페이지 2] 사용자 정보 등록
+    // [페이지 2] 사용자 정보 등록 (버튼의 onclick에 연결됨)
     function submitUserInfo() {
         const nickname = document.getElementById('input-nickname').value.trim();
         const majorSelect = document.getElementById('input-major');
@@ -746,7 +746,8 @@
         const text = document.getElementById('feedbackTextarea').value.trim();
         const shareButton = document.querySelector('.share-button');
         
-        if ((fileData.A || fileData.B) && text.length > 5) {
+        // 텍스트는 5글자 이상 입력 조건 추가
+        if ((fileData.A || fileData.B) && text.length > 5) { 
             shareButton.classList.add('active');
             shareButton.onclick = submitNewPost; // 활성화 시 submitNewPost 연결
         } else {
@@ -762,7 +763,7 @@
         const shareButton = document.querySelector('.share-button');
         
         if (!shareButton.classList.contains('active')) {
-            alert("이미지 하나 이상과 피드백 내용을 입력해주세요.");
+            alert("이미지 하나 이상과 5글자 이상의 피드백 내용을 입력해주세요.");
             return;
         }
 
@@ -810,7 +811,8 @@
                 // 이미지 버튼 원복
                 document.getElementById('btnOptionA').innerHTML = `<div class="option-placeholder"><span>A</span><span class="plus">+</span></div>`;
                 document.getElementById('btnOptionB').innerHTML = `<div class="option-placeholder"><span>B</span><span class="plus">+</span></div>`;
-                document.getElementById('uploadA').value = '';
+                // input file 값 초기화
+                document.getElementById('uploadA').value = ''; 
                 document.getElementById('uploadB').value = '';
                 checkShareButtonState(); // 버튼 비활성화
                 
@@ -820,7 +822,7 @@
         })
         .catch(error => {
             console.error('Error:', error);
-            alert("서버 통신 중 오류 발생: Load failed"); // 사용자에게 오류 메시지 전달
+            alert("서버 통신 중 오류 발생: Load failed"); 
         })
         .finally(() => {
             // 로딩 상태 해제
@@ -857,11 +859,12 @@
     document.addEventListener('DOMContentLoaded', () => {
         goToPage('page-1'); 
         
-        // [Page 8] 이미지 업로드 이벤트 리스너 연결
+        // [Page 8] 이미지 업로드 이벤트 리스너 연결 (파일 선택 시 Base64 저장 및 미리보기)
         document.getElementById('uploadA').addEventListener('change', (e) => handleFile(e, 'A'));
         document.getElementById('uploadB').addEventListener('change', (e) => handleFile(e, 'B'));
         
-        // [Page 8] 버튼 클릭 시 파일 선택창 열기 - 수정된 로직 
+        // [Page 8] 버튼 클릭 시 파일 선택창 열기 (숨겨진 input을 클릭)
+        // **이 부분이 이미지 업로드 창이 안 뜨는 문제를 해결합니다.**
         document.getElementById('btnOptionA').addEventListener('click', (e) => {
              // 버튼 자체를 클릭했을 때만 input 클릭 이벤트 발생
              if (e.target.closest('#btnOptionA') === e.currentTarget) {
@@ -877,7 +880,6 @@
         
         // [Page 8] 텍스트 입력 시 공유하기 버튼 활성화 체크
         document.getElementById('feedbackTextarea').addEventListener('input', checkShareButtonState);
-
     });
 </script>
 </body>
