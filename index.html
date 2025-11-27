@@ -487,6 +487,10 @@
 
 </div>
 
+// Wecrit.html 파일의 <script> 부분 전체를 아래 코드로 대체하세요.
+
+// ... (이전 코드 생략, HTML <style> 태그 다음부터) ...
+
 <script>
     /* ==========================================
      [필수 수정] Google Apps Script 웹 앱 URL
@@ -499,20 +503,23 @@
     let currentPostId = null; // 현재 보고 있는 게시물의 ID (투표/댓글용)
 
     // 임시 더미 데이터 (서버 연동 후에는 삭제하거나 서버에서 불러와야 함)
-    // 현재는 화면 구동을 위해 임시로 넣어둡니다.
     const dummyPosts = [
-        // 이미지 경로는 HTML에 하드코딩된 예시 이미지 URL을 사용합니다.
         { id: 'post_1', title: '포트폴리오 피드백해주세요~^^', author: '주현', major: '광고디자인', text: '어떤 레이아웃이 더 좋아보이나요?', votesA: 15, votesB: 22, imgA: 'https://i.pinimg.com/736x/b9/6b/15/b96b15f2b8ae4e18db863fb1dbc4a4e8.jpg', imgB: 'https://i.pinimg.com/736x/f2/11/fe/f211fe46fbc9249221a55265e1ab6936.jpg', comments: [{ user: '당근이', text: 'a시안이 더 있을 좋을거 같아요!'}] },
         { id: 'post_2', title: '로고 시안 피드백해주세요~^^', author: '디자이너', major: '시각디자인', text: '로고 폰트가 고민입니다!', votesA: 30, votesB: 10, imgA: 'https://i.pinimg.com/1200x/76/db/46/76db46cb650fe3f4cca87f937203830d.jpg', imgB: 'https://i.pinimg.com/736x/8b/17/6c/8b176c1b4da11e7c2d50d96c0ad3ba62.jpg', comments: [] }
     ];
     
     // 네비게이션 제어 함수
     function goToPage(pageId, title = '') {
+        // 모든 페이지 비활성화
         document.querySelectorAll('.page').forEach(page => {
+            page.classList.remove('active');
             page.style.display = 'none';
         });
+
+        // 현재 페이지 활성화
         const activePage = document.getElementById(pageId);
         if (activePage) {
+            activePage.classList.add('active');
             activePage.style.display = 'flex';
         }
 
@@ -813,7 +820,7 @@
         })
         .catch(error => {
             console.error('Error:', error);
-            alert("서버 통신 중 오류 발생: Load failed"); // 사용자에게 오류 메시지 전달 (제공된 이미지와 동일하게)
+            alert("서버 통신 중 오류 발생: Load failed"); // 사용자에게 오류 메시지 전달
         })
         .finally(() => {
             // 로딩 상태 해제
@@ -830,7 +837,8 @@
     // 이미지 클릭 시 모달 열기
     document.querySelectorAll('.app-container').forEach(container => {
         container.addEventListener('click', function(e) {
-            if (e.target.classList.contains('option-image') || e.target.tagName === 'IMG' && e.target.closest('.option-button') === null) {
+            // .option-button 내부의 이미지(page 6/7) 또는 이미지 태그 중 option-button에 속하지 않은 이미지
+            if (e.target.tagName === 'IMG' && (e.target.classList.contains('option-image') || !e.target.closest('.option-button'))) {
                 modal.style.display = "block";
                 modalImg.src = e.target.src;
             }
@@ -853,12 +861,18 @@
         document.getElementById('uploadA').addEventListener('change', (e) => handleFile(e, 'A'));
         document.getElementById('uploadB').addEventListener('change', (e) => handleFile(e, 'B'));
         
-        // [Page 8] 버튼 클릭 시 파일 선택창 열기
+        // [Page 8] 버튼 클릭 시 파일 선택창 열기 - 수정된 로직 
         document.getElementById('btnOptionA').addEventListener('click', (e) => {
-             if (e.target.tagName !== 'INPUT') { document.getElementById('uploadA').click(); }
+             // 버튼 자체를 클릭했을 때만 input 클릭 이벤트 발생
+             if (e.target.closest('#btnOptionA') === e.currentTarget) {
+                 document.getElementById('uploadA').click();
+             }
         });
         document.getElementById('btnOptionB').addEventListener('click', (e) => {
-             if (e.target.tagName !== 'INPUT') { document.getElementById('uploadB').click(); }
+             // 버튼 자체를 클릭했을 때만 input 클릭 이벤트 발생
+             if (e.target.closest('#btnOptionB') === e.currentTarget) {
+                 document.getElementById('uploadB').click();
+             }
         });
         
         // [Page 8] 텍스트 입력 시 공유하기 버튼 활성화 체크
