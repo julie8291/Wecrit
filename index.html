@@ -235,7 +235,7 @@
     /* ==========================================
      [필수 수정] SCRIPT_URL 상수에 배포하여 얻은 새로운 URL을 교체하세요.
      ========================================== */
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwihWszKdA7Iwd0EvkpIxjsrWwnT8HySx7IxtDH4nb1vAp1r1sZwd-COfMwWdWaQBCssA/exec"; 
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyboliM5516jbauxA2x938Ut0MnLHk0zdxAMr8IJkf21PeBq0U5L54xr_B-8OvofVtvVw/exec"; 
     
     // 전역 상태 변수
     let currentUser = {}; // { nickname: "닉네임", major: "학과" }
@@ -293,10 +293,10 @@
         if (targetPage) goToPage(targetPage);
     }
     
-    // Page 2. 사용자 등록 함수 (ID 수정 및 Apps Script 통신 로직)
+    // 🚨 [핵심 수정] Page 2. 사용자 등록 함수 (ID 불일치 수정)
     function submitUserInfo() {
-        const nicknameInput = document.getElementById('input-nickname'); // [ID 수정]
-        const majorSelect = document.getElementById('input-major'); // [ID 수정]
+        const nicknameInput = document.getElementById('input-nickname'); // ⭐️ ID 수정됨: input-nickname
+        const majorSelect = document.getElementById('input-major'); // ⭐️ ID 수정됨: input-major
         const nickname = nicknameInput.value.trim();
         const major = majorSelect.value;
 
@@ -313,12 +313,11 @@
         
         fetch(SCRIPT_URL, {
             method: 'POST',
-            // 🚨 [핵심 수정] Content-Type을 반드시 JSON으로 지정
+            // 🚨 [필수] Content-Type을 JSON으로 지정해야 Apps Script의 doPost(e)가 데이터를 읽을 수 있음
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         })
         .then(response => {
-             // 🚨 [방어 로직] 400, 500 에러 처리
              if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
              return response.json();
         })
@@ -333,16 +332,17 @@
         })
         .catch(error => {
             console.error('Registration Error:', error);
+            // 🚨 이 오류가 Load failed 오류입니다. URL, 배포 권한, Code.gs의 doPost를 확인해야 합니다.
             alert("서버 통신 오류: 정보를 등록할 수 없습니다. Apps Script URL 및 권한을 확인해주세요.");
         });
     }
 
-    // Page 8. 이미지 파일을 Base64로 읽는 함수 (ID 수정 완료)
+    // Page 8. 이미지 파일을 Base64로 읽는 함수 (수정 완료)
     function handleFile(event) {
         const input = event.target;
         const option = input.dataset.option; // 'A' 또는 'B'
         const file = input.files[0];
-        const btn = document.getElementById(`btnOption${option}`); // [ID 수정]
+        const btn = document.getElementById(`btnOption${option}`);
 
         if (!file) {
             fileData[option] = null;
@@ -370,7 +370,6 @@
     
     // 공유하기 버튼 활성화/비활성화 체크 (수정 완료)
     function checkShareButtonState() {
-        // 이미지A 또는 이미지B 둘 중 하나라도 Base64 데이터가 있으면 활성화
         const shareButton = document.querySelector('#page-8 .share-button'); 
         if (fileData.A || fileData.B) {
             shareButton.classList.add('active');
@@ -383,10 +382,10 @@
 
 
     /* ==========================================
-     [핵심 수정] Page 8. 게시물 등록 함수
+     🚨 [핵심 수정] Page 8. 게시물 등록 함수 (Base64 데이터를 직접 전송하도록 수정)
      ========================================== */
     function submitNewPost() {
-        const textarea = document.getElementById('feedbackTextarea'); // [ID 수정]
+        const textarea = document.getElementById('feedbackTextarea');
         const text = textarea.value.trim();
         const shareButton = document.querySelector('#page-8 .share-button'); 
         
@@ -395,7 +394,6 @@
             return;
         }
 
-        // 사용자 정보가 없으면 기본값 설정 (Page 2를 거치지 않았을 경우)
         if (!currentUser.nickname) {
              currentUser.nickname = '익명';
              currentUser.major = '미정';
@@ -407,7 +405,7 @@
             nickname: currentUser.nickname,
             major: currentUser.major,
             text: text,
-            // ⭐️ Base64 데이터를 직접 보냅니다.
+            // ⭐️ Base64 데이터를 직접 보냅니다. (잘못된 'uploaded' 문자열 전송 수정)
             imgA: fileData.A, 
             imgB: fileData.B 
         };
@@ -420,7 +418,7 @@
         // 2. fetch를 사용하여 Google Apps Script URL로 POST 요청 전송
         fetch(SCRIPT_URL, {
             method: 'POST',
-            // 🚨 [핵심] JSON 요청임을 명시하여 Apps Script의 doPost(e)가 e.postData를 찾을 수 있게 함
+            // 🚨 [필수] JSON 요청임을 명시하여 Apps Script가 e.postData를 찾을 수 있게 함
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         })
@@ -467,7 +465,7 @@
         });
     }
 
-    // 더미 및 보조 함수들
+    // 더미 및 보조 함수들 (기존 로직 유지)
     function openVotePage(postId, title, imgA, imgB) { /* ... */ goToPage('page-6'); }
     function submitVote(selection) { /* ... */ goToPage('page-7'); }
     function openCommentModal() { document.getElementById('comment-modal').style.display = 'block'; }
@@ -484,6 +482,9 @@
     document.addEventListener('DOMContentLoaded', () => {
         goToPage('page-1'); 
 
+        // ⭐️ [ID 수정] Page 2의 등록 버튼에 이벤트 리스너 수동 연결
+        document.querySelector('#page-2 .btn-common').onclick = submitUserInfo;
+
         const uploadA = document.getElementById('uploadA');
         const uploadB = document.getElementById('uploadB');
         const btnA = document.getElementById('btnOptionA');
@@ -493,7 +494,7 @@
         uploadA.addEventListener('change', handleFile);
         uploadB.addEventListener('change', handleFile);
 
-        // ⭐️ 버튼 클릭 시 input을 대신 클릭하도록 연결 (커스텀 버튼 구현)
+        // ⭐️ 버튼 클릭 시 input을 대신 클릭하도록 연결
         btnA.addEventListener('click', (e) => {
              e.stopPropagation(); 
              uploadA.click();
