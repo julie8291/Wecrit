@@ -6,8 +6,9 @@
     <title>WECRIT Service</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
+        /* CSS는 이전 코드와 동일합니다. */
         /* ====================
-            1. 공통 CSS (변경 없음)
+            1. 공통 CSS
             ==================== */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -91,7 +92,7 @@
         .btn-common:hover { background-color: #222; }
 
         /* ====================
-            2. 화면별 스타일 (기존 스타일 유지)
+            2. 화면별 스타일 
             ==================== */
         
         /* [Page 1~4] */
@@ -124,17 +125,17 @@
         .image-row { display: flex; gap: 5px; height: 180px; overflow: hidden; margin-bottom: 10px;}
         .image-row img { height: 100%; object-fit: cover; display: block; }
         .post-item.special-bg .image-row img { box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-        .w-30 { width: 30%; } .w-40 { width: 40%; } .w-50 { width: 50%; } .w-100 { width: 100%; } /* w-100 추가 */
+        .w-30 { width: 30%; } .w-40 { width: 40%; } .w-50 { width: 50%; } .w-100 { width: 100%; }
         .title-box { background: #fff; border-radius: 8px; padding: 12px 0; text-align: center; font-size: 14px; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .title-box.gray-box { background: #EAEAEA; }
         .post-item.special-bg .title-box { box-shadow: none; background-color: #f9f9f9; }
 
         /* 플로팅 플러스 버튼 */
         .fab-btn {
-            position: fixed; /* absolute -> fixed로 변경하여 스크롤 시에도 위치 유지 */
+            position: fixed; 
             bottom: 30px; 
             right: 50%;
-            transform: translateX(200px); /* max-width 480px의 오른쪽 끝에 위치하도록 조정 */
+            transform: translateX(200px); 
             width: 60px; 
             height: 60px;
             background-color: #111; 
@@ -173,7 +174,6 @@
         
         /* 그래프 스타일 수정 (기본 배경을 연하게) */
         .progress-container { width: 100%; height: 50px; display: flex; border-radius: 25px; overflow: hidden; margin-bottom: 40px; font-size: 18px; font-weight: 700; color: #fff; background-color: #eee; }
-        /* 초기 색상은 JS에서 덮어씁니다 */
         .progress-a { width: 50%; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; transition: width 0.5s ease, background-color 0.3s; background-color: #555; }
         .progress-b { width: 50%; display: flex; align-items: center; justify-content: flex-end; padding: 0 20px; transition: width 0.5s ease, background-color 0.3s; background-color: #555; }
         
@@ -206,13 +206,13 @@
         .image-upload-input { display: none; }
 
         .share-button {
-            width: 100%; padding: 15px 0; background-color: #D9D9D9; color: #fff; border: none; border-radius: 30px; font-size: 16px; font-weight: 700; cursor: default; /* 기본 커서를 default로 변경 */
+            width: 100%; padding: 15px 0; background-color: #D9D9D9; color: #fff; border: none; border-radius: 30px; font-size: 16px; font-weight: 700; cursor: default;
             margin-top: auto;
         }
         .share-button.active { 
             background-color: #333; 
             color: #fff; 
-            cursor: pointer; /* 활성화 시 커서를 pointer로 변경 */
+            cursor: pointer;
         }
 
         /* Footer */
@@ -407,25 +407,29 @@
 
 
     /* =====================
-       1. 전역 변수 및 설정 (수정됨)
+       1. 전역 변수 및 설정
        ===================== */
     let historyStack = [];
     let currentUser = { nickname: "", major: "" };
     const fileData = { A: null, B: null };
-    let currentPost = null; // 현재 선택된 게시글 데이터 객체
-    let postData = []; // 서버에서 로드된 전체 게시글 목록
+    let currentPost = null; 
+    let postData = []; 
 
 
     /* =====================
        2. 페이지 이동 (SPA)
        ===================== */
+    // 시작 페이지를 'page-1'로 설정
+    let currentPageId = 'page-1';
+
     function goToPage(pageId) {
         const activePage = document.querySelector('.page.active');
-        if (activePage && activePage.id !== pageId && activePage.id !== 'page-1') { 
+        if (activePage && activePage.id !== pageId) { 
             historyStack.push(activePage.id); 
         }
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(pageId).classList.add('active');
+        currentPageId = pageId;
         window.scrollTo(0, 0);
         updateUI(pageId);
     }
@@ -435,10 +439,12 @@
             const prevPage = historyStack.pop();
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(prevPage).classList.add('active');
+            currentPageId = prevPage;
             window.scrollTo(0, 0);
             updateUI(prevPage);
-        } else {
-            goToPage('page-4');
+        } else if (currentPageId !== 'page-1') {
+            // 히스토리가 비었으나 현재 페이지가 1이 아니면 1로 이동
+            goToPage('page-1');
         }
     }
 
@@ -447,20 +453,20 @@
         const fab = document.getElementById('fab-write');
         const title = document.getElementById('page-title');
 
-        if (['page-3', 'page-4', 'page-5', 'page-6', 'page-7', 'page-8'].includes(pageId)) {
-            arrow.style.display = 'block';
-        } else {
+        if (pageId === 'page-1') {
             arrow.style.display = 'none';
+        } else {
+            arrow.style.display = 'block';
         }
 
         if (pageId === 'page-5') { 
             fab.style.display = 'flex'; 
-            loadPosts(); // 게시글 로드 시작
+            loadPosts(); 
         } else { 
             fab.style.display = 'none'; 
         }
         
-        // 페이지 8 (새 게시물) 제목 처리
+        // 페이지 타이틀 업데이트
         if (pageId === 'page-8') { 
             title.style.display = 'block'; 
             title.innerText = '새 게시물';
@@ -471,11 +477,12 @@
             title.style.display = 'none'; 
         }
     }
+    // 앱 로드시 현재 페이지를 'page-1'로 설정
     updateUI('page-1');
 
 
     /* =====================
-       3. 사용자 정보 저장 (Page 2)
+       3. 사용자 정보 저장
        ===================== */
     function submitUserInfo() {
         const nickname = document.getElementById('input-nickname').value.trim();
@@ -495,7 +502,7 @@
         goToPage('page-3');
     }
 
-    // 로컬 스토리지에서 사용자 정보 로드
+    // 로컬 스토리지에서 사용자 정보 로드 (페이지 자동 이동 로직 제거)
     (function loadUserInfo() {
         const storedNickname = localStorage.getItem('userNickname');
         const storedMajor = localStorage.getItem('userMajor');
@@ -505,13 +512,13 @@
             document.getElementById('input-nickname').value = storedNickname;
             document.getElementById('input-major').value = storedMajor;
             document.getElementById('display-name').innerText = storedNickname;
-            goToPage('page-4'); // 정보가 있으면 바로 메뉴 페이지로 이동
+            // **주의: 첫 페이지 유지 요청에 따라 자동 이동 로직을 제거했습니다.**
         }
     })();
 
 
     /* =====================
-       4. 게시글 로딩 및 렌더링 (Page 5) (수정됨)
+       4. 게시글 로딩 및 렌더링 (Page 5)
        ===================== */
     async function loadPosts() {
         const postListEl = document.getElementById('post-list-container');
@@ -521,8 +528,8 @@
             const response = await fetch(SCRIPT_URL + '?action=getPosts', { method: 'GET' });
             if (!response.ok) throw new Error('Network response was not ok');
             
-            postData = await response.json(); // 전역 변수에 저장
-            postListEl.innerHTML = ''; // 초기화
+            postData = await response.json(); 
+            postListEl.innerHTML = ''; 
 
             if (postData.length === 0) {
                 postListEl.innerHTML = '<p style="text-align: center; color: #888; margin-top: 50px;">게시글이 없습니다. 첫 게시글을 작성해보세요!</p>';
@@ -537,7 +544,6 @@
 
                 let imageHtml = '';
                 if (hasImages) {
-                    // 이미지 너비 클래스 결정 (1개면 w-100, 2개면 w-50)
                     const classA = (hasImgA && hasImgB) ? 'w-50' : 'w-100';
                     const classB = (hasImgA && hasImgB) ? 'w-50' : 'w-100';
 
@@ -570,31 +576,26 @@
 
 
     /* =====================
-       5. 투표 및 결과 로직 (Page 6 & 7) (수정됨)
+       5. 투표 및 결과 로직 (Page 6 & 7)
        ===================== */
     function openVotePageFromPost(post) {
         currentPost = post; 
 
-        // 질문 설정
         document.getElementById('vote-question').innerText = post.question;
 
-        // A/B 이미지 설정
         document.getElementById('vote-img-a').src = post.imgA;
         document.getElementById('vote-img-b').src = post.imgB;
         document.getElementById('result-img-a').src = post.imgA;
         document.getElementById('result-img-b').src = post.imgB;
 
-        // 이미지가 없을 경우 레이아웃 처리 (CSS 'display: none'으로 처리하는 것이 더 깔끔)
         document.querySelector('#page-6 .option-a').style.display = (post.imgA && post.imgA.startsWith('http')) ? 'flex' : 'none';
         document.querySelector('#page-6 .option-b').style.display = (post.imgB && post.imgB.startsWith('http')) ? 'flex' : 'none';
         document.querySelector('#page-7 .option-a').style.display = document.querySelector('#page-6 .option-a').style.display;
         document.querySelector('#page-7 .option-b').style.display = document.querySelector('#page-6 .option-b').style.display;
 
 
-        // 댓글 목록 로드 및 표시
         renderComments(post.comments);
         
-        // 투표 여부 확인 후 페이지 분기
         const storageKey = 'voted_' + post.id;
         if (localStorage.getItem(storageKey)) {
             updateResultGraph(currentPost.voteA, currentPost.voteB); 
@@ -617,7 +618,7 @@
                 method: 'POST',
                 body: JSON.stringify({ 
                     action: 'vote', 
-                    rowNumber: currentPost.rowNumber, // App Script에 행 번호 전달
+                    rowNumber: currentPost.rowNumber, 
                     select: selection 
                 }),
                 headers: { 'Content-Type': 'application/json' }
@@ -626,14 +627,13 @@
             const result = await response.json();
 
             if (result.result === 'success') {
-                // 서버에서 받은 최신 투표 수로 전역 변수 업데이트
                 currentPost.voteA = result.voteA;
                 currentPost.voteB = result.voteB;
                 
                 updateResultGraph(result.voteA, result.voteB);
             } else {
                 alert('투표 중 오류가 발생했습니다: ' + result.message);
-                localStorage.removeItem(storageKey); // 오류 발생 시 투표 기록 삭제 (재시도 허용)
+                localStorage.removeItem(storageKey); 
             }
 
         } catch (err) {
@@ -648,9 +648,7 @@
         if (historyStack[lastIdx] === 'page-6') { historyStack.splice(lastIdx, 1); }
     }
 
-    // 그래프 업데이트 함수 (투표 수 파라미터로 받음)
     function updateResultGraph(countA, countB) {
-        // App Script에서 숫자로 받아오지만, 혹시 문자열일 경우를 대비하여 Number() 처리
         const numA = Number(countA) || 0; 
         const numB = Number(countB) || 0;
         const total = numA + numB;
@@ -688,7 +686,7 @@
     }
 
     /* =====================
-       6. 댓글 기능 (Page 7 모달) (추가됨)
+       6. 댓글 기능 (Page 7 모달)
        ===================== */
     function renderComments(comments) {
         const commentListEl = document.getElementById('comment-list');
@@ -702,7 +700,6 @@
         comments.forEach(comment => {
             const item = document.createElement('div');
             item.className = 'comment-item';
-            // 댓글에 닉네임이 없으면 '익명' 표시
             const nickname = comment.nickname || '익명';
             item.innerHTML = `
                 <div class="comment-user">${nickname}</div>
@@ -712,7 +709,6 @@
             commentListEl.appendChild(item);
         });
         
-        // 댓글 목록이 너무 길 경우 스크롤을 맨 아래로 이동
         commentListEl.scrollTop = commentListEl.scrollHeight;
     }
 
@@ -728,7 +724,7 @@
 
     function closeCommentModal() {
         document.getElementById('comment-modal').style.display = 'none';
-        document.getElementById('new-comment-text').value = ''; // 댓글 내용 초기화
+        document.getElementById('new-comment-text').value = ''; 
     }
 
     async function submitComment() {
@@ -763,11 +759,9 @@
             if (result.result === 'success') {
                 closeCommentModal();
                 
-                // 현재 게시글 데이터에도 새 댓글 추가 (화면 갱신용)
                 if (!currentPost.comments) currentPost.comments = [];
                 currentPost.comments.push(result.newComment);
                 
-                // 댓글 목록 다시 렌더링
                 renderComments(currentPost.comments); 
                 
             } else {
@@ -798,11 +792,10 @@
 
 
     /* =====================
-       8. 새 게시물 작성 및 공유 (Page 8) (추가됨)
+       8. 새 게시물 작성 및 공유 (Page 8)
        ===================== */
     const shareButton = document.querySelector('#page-8 .share-button');
 
-    // 입력 상태에 따라 공유 버튼 활성화/비활성화
     function checkShareForm() {
         const question = document.getElementById('feedbackTextarea').value.trim();
         if (question && (fileData.A || fileData.B)) {
@@ -814,17 +807,14 @@
         }
     }
 
-    // 파일 선택 버튼 이벤트 리스너
     document.getElementById('uploadA').addEventListener('change', (e) => handleImageUpload(e, 'A'));
     document.getElementById('uploadB').addEventListener('change', (e) => handleImageUpload(e, 'B'));
     document.getElementById('feedbackTextarea').addEventListener('input', checkShareForm);
 
-    // 이미지 업로드 처리 (Base64 인코딩)
     function handleImageUpload(event, option) {
         const file = event.target.files[0];
         const optionButton = document.getElementById(`btnOption${option}`);
 
-        // UI 초기화
         if (!file) {
             fileData[option] = null;
             optionButton.style.backgroundImage = 'none';
@@ -840,18 +830,17 @@
             // 2MB (2,097,152 바이트) 크기 제한 체크
             if (base64Data.length * 0.75 > 2097152) {
                 alert('파일 크기가 2MB를 초과합니다. 더 작은 이미지를 사용해주세요.');
-                event.target.value = ''; // 파일 입력 초기화
-                handleImageUpload({ target: { files: [] } }, option); // UI 초기화
+                event.target.value = ''; 
+                handleImageUpload({ target: { files: [] } }, option); 
                 return;
             }
 
             fileData[option] = {
-                data: base64Data, // Base64 data
+                data: base64Data, 
                 mimeType: file.type,
                 name: file.name
             };
             
-            // 미리보기 이미지를 버튼 배경에 표시
             optionButton.style.backgroundImage = `url(${e.target.result})`;
             optionButton.style.backgroundSize = 'cover';
             optionButton.style.backgroundPosition = 'center';
@@ -862,7 +851,6 @@
         reader.readAsDataURL(file);
     }
 
-    // 새 게시물 서버 전송
     async function submitNewPost() {
         if (!shareButton.classList.contains('active')) return;
 
@@ -879,7 +867,6 @@
 
         try {
             const dataToSend = {
-                // App Script의 doPost는 action 값이 없으면 새 게시글 저장 로직을 타게 되어 있습니다.
                 nickname: currentUser.nickname,
                 major: currentUser.major,
                 question: question,
@@ -898,17 +885,15 @@
             if (result.result === 'success') {
                 alert('게시글이 성공적으로 공유되었습니다!');
                 
-                // 폼 초기화
                 document.getElementById('feedbackTextarea').value = '';
                 document.getElementById('uploadA').value = '';
                 document.getElementById('uploadB').value = '';
                 fileData.A = null;
                 fileData.B = null;
-                // UI 초기화
                 handleImageUpload({ target: { files: [] } }, 'A'); 
                 handleImageUpload({ target: { files: [] } }, 'B'); 
                 
-                goToPage('page-5'); // 게시판 목록으로 이동
+                goToPage('page-5');
             } else {
                 alert('게시글 공유에 실패했습니다: ' + (result.message || '알 수 없는 오류'));
             }
