@@ -658,15 +658,21 @@ async function submitComment() {
     }
     
     const nickname = currentUser.nickname || "익명";
+    const major = currentUser.major || "미선택";
     
     // 로컬에 댓글 추가 (즉시 표시)
     const commentList = document.getElementById('comment-list');
     const newCommentDiv = document.createElement('div');
     newCommentDiv.classList.add('comment-item');
-    newCommentDiv.innerHTML = `<div class="comment-user">${nickname}</div><div class="comment-text">${text}</div><hr class="comment-hr">`;
+    // 이름 옆에 학과 괄호로 추가
+    newCommentDiv.innerHTML = `<div class="comment-user">${nickname} (${major})</div><div class="comment-text">${text}</div><hr class="comment-hr">`;
     commentList.prepend(newCommentDiv);
     
-    // 서버에 댓글 저장
+    // 모달을 바로 닫아 사용자에게 즉시 반영되도록 함
+    textInput.value = ""; // 입력창 초기화
+    closeCommentModal();
+
+    // 서버에 댓글 저장 (백그라운드, 닫힌 후에도 진행)
     try {
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
@@ -674,6 +680,7 @@ async function submitComment() {
                 action: 'comment',
                 postId: currentPostId,
                 nickname: nickname,
+                major: major, // 전송에 major 추가하여 서버에 저장되면 로드 시 반영 가능
                 text: text
             })
         });
@@ -688,10 +695,6 @@ async function submitComment() {
     } catch (error) {
         console.error('댓글 저장 오류:', error);
     }
-    
-    // 입력창 초기화 및 모달 닫기
-    textInput.value = "";
-    closeCommentModal();
 }
 
 // 🔵 댓글 불러오기 함수
@@ -713,8 +716,10 @@ async function loadComments(postId) {
         comments.reverse().forEach(comment => {
             const commentDiv = document.createElement('div');
             commentDiv.classList.add('comment-item');
+            // 서버에서 major가 전달되면 괄호로 함께 표시
+            const author = `${comment.nickname || '익명'}${comment.major ? ' (' + comment.major + ')' : ''}`;
             commentDiv.innerHTML = `
-                <div class="comment-user">${comment.nickname || '익명'}</div>
+                <div class="comment-user">${author}</div>
                 <div class="comment-text">${comment.text || ''}</div>
                 <hr class="comment-hr">
             `;
@@ -813,35 +818,7 @@ function checkFormValidity() {
 }
 textarea.addEventListener('input', checkFormValidity);
 
-function addNewPostToBoard(postId, question, imgA, imgB) {
-    const list = document.querySelector('#page-5 .post-list');
-    
-    const emptyMsg = list.querySelector('.empty-message');
-    if (emptyMsg) emptyMsg.remove();
-
-    const article = document.createElement('article');
-    article.className = 'post-item special-bg'; 
-    
-    article.onclick = function() { 
-        openVotePage(postId, question, imgA, imgB); 
-    }; 
-
-    let imagesHtml = '';
-    const srcA = imgA ? `data:${imgA.mimeType};base64,${imgA.data}` : null;
-    const srcB = imgB ? `data:${imgB.mimeType};base64,${imgB.data}` : null;
-
-    if (srcA && srcB) {
-        imagesHtml = `<img src="${srcA}" class="w-50"><img src="${srcB}" class="w-50">`;
-    } else if (srcA) {
-        imagesHtml = `<img src="${srcA}" style="width:100%; height:100%; object-fit:cover;">`;
-    } else if (srcB) {
-        imagesHtml = `<img src="${srcB}" style="width:100%; height:100%; object-fit:cover;">`;
-    }
-
-    article.innerHTML = `<div class="image-row">${imagesHtml}</div><div class="title-box gray-box">${question}</div>`;
-    list.prepend(article);
-}
-
+// 더 빠르게 느껴지도록: UI는 즉시 업데이트하고 네트워크 업로드는 백그라운드에서 수행합니다.
 shareButton.addEventListener('click', () => {
     if (!shareButton.classList.contains('active')) return;
 
@@ -849,43 +826,59 @@ shareButton.addEventListener('click', () => {
     shareButton.innerText = "업로드 중...";
     shareButton.disabled = true;
 
+    // 준비된 데이터를 복사 (백그라운드 업로드에 사용)
+    const uploadA = fileData.A ? { ...fileData.A } : null;
+    const uploadB = fileData.B ? { ...fileData.B } : null;
+    const postText = textarea.value;
     const newPostId = 'post_' + Date.now();
-    addNewPostToBoard(newPostId, textarea.value, fileData.A, fileData.B);
+
+    // 즉시 UI에 반영 (사용자가 체감하는 업로드 속도 향상)
+    addNewPostToBoard(newPostId, postText, uploadA, uploadB);
     voteCounts[newPostId] = { A: 0, B: 0 };
 
-    const payload = {
-        id: newPostId,
-        nickname: currentUser.nickname || "익명",
-        major: currentUser.major || "미선택",
-        question: textarea.value,
-        imageA: fileData.A,
-        imageB: fileData.B
-    };
+    // UI 초기화 (즉시)
+    imageWrapper.innerHTML = '';
+    textarea.value = '';
+    fileData.A = null; 
+    fileData.B = null;
+    document.getElementById('btnOptionA').classList.remove('disabled');
+    document.getElementById('btnOptionB').classList.remove('disabled');
+    checkFormValidity();
 
-    fetch(SCRIPT_URL, {
-        method: 'POST',
-        body: JSON.stringify(payload)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.result !== 'success') { console.log('Server warning: ' + data.message); }
-    })
-    .catch(error => { console.error('Error:', error); })
-    .finally(() => {
-        alert('게시물이 성공적으로 공유되었습니다!');
-        imageWrapper.innerHTML = '';
-        textarea.value = '';
-        fileData.A = null; 
-        fileData.B = null;
-        document.getElementById('btnOptionA').classList.remove('disabled');
-        document.getElementById('btnOptionB').classList.remove('disabled');
-        checkFormValidity();
-        
-        shareButton.innerText = originalText;
-        shareButton.disabled = false;
-        
-        goToPage('page-5');
-    });
+    shareButton.innerText = originalText;
+    shareButton.disabled = false;
+
+    // 사용자가 바로 확인할 수 있도록 빠르게 이동 및 알림
+    goToPage('page-5');
+    alert('게시물이 성공적으로 공유되었습니다!');
+
+    // 백그라운드로 서버에 업로드 (실패해도 UI는 이미 반영됨)
+    (async () => {
+        const payload = {
+            id: newPostId,
+            nickname: currentUser.nickname || "익명",
+            major: currentUser.major || "미선택",
+            question: postText,
+            imageA: uploadA,
+            imageB: uploadB
+        };
+
+        try {
+            const response = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+            if (data.result !== 'success') {
+                console.log('Server warning: ' + data.message);
+            } else {
+                console.log('게시물이 서버에 저장되었습니다.');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    })();
+
 });
 
 
